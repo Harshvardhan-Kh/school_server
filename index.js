@@ -1,18 +1,33 @@
 import express from "express";
+import mongoose, { model, Schema } from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 app.use(express.json());
+const PORT = 2080;
 
-const students = [];
+const connectDB = async () => {
+  const conet = await mongoose.connect(process.env.MONGODB_URI);
 
-app.get("/students", (req, res) => {
-  if (students.length === 0) {
-    return res.json({
-      status: false,
-      massage: "No single student found in the list",
-    });
+  if (conet) {
+    console.log("MongoDB connection succeeded");
   }
+};
 
+connectDB();
+
+const studentSchema = new Schema({
+  name: String,
+  mobile: String,
+  email: String,
+  age: Number,
+});
+
+const Student = model("Student", studentSchema);
+
+app.get("/students", async (req, res) => {
+  const students = await Student.find();
   res.json({
     suscess: true,
     data: students,
@@ -20,17 +35,8 @@ app.get("/students", (req, res) => {
   });
 });
 
-app.post("/student", (req, res) => {
+app.post("/student", async (req, res) => {
   const { name, age, email, mobile } = req.body;
-  const id = Math.floor(Math.random() * 10 + 1);
-
-  const newStudent = {
-    id,
-    name,
-    age,
-    email,
-    mobile,
-  };
 
   if (!name) {
     return res.json({
@@ -59,37 +65,31 @@ app.post("/student", (req, res) => {
       massage: "Please enter mobile number first",
     });
   }
+  const newStudent = new Student({
+    name: name,
+    age: age,
+    mobile: mobile,
+    email: email,
+  });
+
+  const saveStudent = await newStudent.save();
 
   res.json({
     suscess: true,
-    data: newStudent,
+    data: saveStudent,
     massage: "new student added successfully",
   });
-  students.push(newStudent);
 });
 
-app.get("/student", (req, res) => {
-  const { id } = req.query;
+app.get("/student", async (req, res) => {
+  const { email } = req.query;
 
-  let student = null;
+  const students = await Student.findOne({ email: email });
 
-  students.forEach((stud) => {
-    if (stud.id == id) {
-      student = stud;
-    }
-  });
-
-  if (student == null) {
-    return res.json({
-      suscess: false,
-      massage: "student no longer exists",
-    });
-  }
   res.json({
-    suscess: "student added successfully",
-    data: student,
+    suscess: "student fetched successfully",
+    data: students,
   });
 });
 
-const PORT = 5000;
 app.listen(PORT, console.log(`server listening on ${PORT}`));
