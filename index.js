@@ -1,5 +1,5 @@
-import express from "express";
-import mongoose, { model, Schema } from "mongoose";
+import express, { response } from "express";
+import mongoose, { model, Schema, set } from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -17,26 +17,105 @@ const connectDB = async () => {
 
 connectDB();
 
-const studentSchema = new Schema({
+const productSchema = new Schema({
   name: String,
-  mobile: String,
-  email: String,
-  age: Number,
+  description: String,
+  price: Number,
+  productImage: String,
+  brand: String,
 });
 
-const Student = model("Student", studentSchema);
+const Product = model("Product", productSchema);
 
-app.get("/students", async (req, res) => {
-  const students = await Student.find();
+app.get("/products", async (req, res) => {
+  const products = await Product.find();
   res.json({
     suscess: true,
-    data: students,
-    massage: "students data fetched successfully",
+    data: products,
+    massage: "Products data fetched successfully",
   });
 });
 
-app.post("/student", async (req, res) => {
-  const { name, age, email, mobile } = req.body;
+app.post("/product", async (req, res) => {
+  const { name, description, price, productImage, brand } = req.body;
+
+  if (!name) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter product name first",
+    });
+  }
+
+  if (!description) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter product description",
+    });
+  }
+
+  if (!price) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter product price",
+    });
+  }
+
+  if (!productImage) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter product image url",
+    });
+  }
+  if (!brand) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter brand name",
+    });
+  }
+
+  const newProduct = new Product({
+    name: name,
+    description: description,
+    price: price,
+    productImage: productImage,
+    brand: brand,
+  });
+
+  const saveProduct = await newProduct.save();
+
+  res.json({
+    suscess: true,
+    data: saveProduct,
+    massage: "New product added successfully",
+  });
+});
+
+app.get("/product", async (req, res) => {
+  const { name } = req.query;
+
+  const products = await Product.findOne({ name: name });
+
+  res.json({
+    suscess: "productt fetched successfully",
+    data: products,
+  });
+});
+
+app.delete("/product/:_id", async (req, res) => {
+  const { _id } = req.params;
+
+  await Product.deleteOne({ _id: _id });
+
+  res.json({
+    suscess: true,
+    data: {},
+    massage: `suscessfully deleted product with id ${_id}`,
+  });
+});
+
+app.put("/product/:_id", async (req, res) => {
+  const { _id } = req.params;
+  const { name, description, price, productImage, brand } = req.body;
 
   if (!name) {
     return res.json({
@@ -45,50 +124,83 @@ app.post("/student", async (req, res) => {
     });
   }
 
-  if (!age) {
+  if (!description) {
     return res.json({
       suscess: false,
-      massage: "Please enter your age first",
+      massage: "Please enter product description",
     });
   }
 
-  if (!email) {
+  if (!price) {
     return res.json({
       suscess: false,
-      massage: "Please enter a email first",
+      massage: "Please enter product price",
     });
   }
 
-  if (!mobile) {
+  if (!productImage) {
     return res.json({
       suscess: false,
-      massage: "Please enter mobile number first",
+      massage: "Please enter product image url",
     });
   }
-  const newStudent = new Student({
-    name: name,
-    age: age,
-    mobile: mobile,
-    email: email,
-  });
+  if (!brand) {
+    return res.json({
+      suscess: false,
+      massage: "Please enter brand name",
+    });
+  }
 
-  const saveStudent = await newStudent.save();
+  await Product.updateOne(
+    { _id: _id },
+    {
+      $set: {
+        name: name,
+        description: description,
+        price: price,
+        productImage: productImage,
+        brand: brand,
+      },
+    }
+  );
 
+  const updatedProduct = await Product.updateOne({ _id: _id });
   res.json({
     suscess: true,
-    data: saveStudent,
-    massage: "new student added successfully",
+    data: updatedProduct,
+    massage: "product updated successfully",
   });
 });
 
-app.get("/student", async (req, res) => {
-  const { email } = req.query;
+app.patch("/product/:_id", async (req, res) => {
+  const { _id } = req.params;
+  const { name, description, price, productImage, brand } = req.body;
 
-  const students = await Student.findOne({ email: email });
+  const product = await Product.findById(_id);
+
+  if (name) {
+    product.name = name;
+  }
+
+  if (productImage) {
+    product.productImage = productImage;
+  }
+  if (description) {
+    product.description = description;
+  }
+  if (price) {
+    product.price = price;
+  }
+  if (brand) {
+    product.brand = brand;
+  }
+
+  const productUpdated = await product.save();
 
   res.json({
-    suscess: "student fetched successfully",
-    data: students,
+    suscess: true,
+    data: productUpdated,
+    massage: "product updated successfully",
   });
 });
 
